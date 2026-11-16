@@ -11,13 +11,13 @@
   <aside class="sidebar no-print">
     <div class="marca">CINTAC</div>
     <nav>
-      <a href="{% url 'cotizaciones:simulador' %}" class="{% if request.resolver_match.url_name == 'simulador' %}activo{% endif %}">📦 Simulador de Cotización</a>
-      <a href="{% url 'cotizaciones:comparador' %}" class="{% if request.resolver_match.url_name == 'comparador' %}activo{% endif %}">⚖️ Comparador de Embarcadores</a>
-      <a href="{% url 'cotizaciones:historial' %}" class="{% if request.resolver_match.url_name == 'historial' %}activo{% endif %}">🗂️ Historial</a>
+      <a href="{% url 'cotizaciones:simulador' %}" class="{% if request.resolver_match.url_name == 'simulador' %}activo{% endif %}"> Simulador de Cotización</a>
+      <a href="{% url 'cotizaciones:comparador' %}" class="{% if request.resolver_match.url_name == 'comparador' %}activo{% endif %}"> Comparador de Embarcadores</a>
+      <a href="{% url 'cotizaciones:historial' %}" class="{% if request.resolver_match.url_name == 'historial' %}activo{% endif %}"> Historial</a>
       {% if user.es_administrador %}
-      <a href="{% url 'tarifas:lista' %}" class="{% if request.resolver_match.namespace == 'tarifas' %}activo{% endif %}">🏷️ Mantenedor de Tarifas</a>
-      <a href="{% url 'usuarios:lista' %}" class="{% if request.resolver_match.url_name == 'lista' and request.resolver_match.namespace == 'usuarios' or request.resolver_match.url_name == 'crear' and request.resolver_match.namespace == 'usuarios' %}activo{% endif %}">👥 Gestión de Usuarios</a>
-      <a href="{% url 'auditoria:lista' %}" class="{% if request.resolver_match.namespace == 'auditoria' %}activo{% endif %}">🔎 Auditoría</a>
+      <a href="{% url 'tarifas:lista' %}" class="{% if request.resolver_match.namespace == 'tarifas' %}activo{% endif %}"> Mantenedor de Tarifas</a>
+      <a href="{% url 'usuarios:lista' %}" class="{% if request.resolver_match.url_name == 'lista' and request.resolver_match.namespace == 'usuarios' or request.resolver_match.url_name == 'crear' and request.resolver_match.namespace == 'usuarios' %}activo{% endif %}"> Gestión de Usuarios</a>
+      <a href="{% url 'auditoria:lista' %}" class="{% if request.resolver_match.namespace == 'auditoria' %}activo{% endif %}"> Auditoría</a>
       {% endif %}
     </nav>
     <div class="sesion">
