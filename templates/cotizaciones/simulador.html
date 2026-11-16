@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}Simulador · CINTAC{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <h1>Simulador de Cotización</h1>
+  <p>Calcula el costo de importación puesto en bodega: flete, contingencia, aranceles e IVA.</p>
+</div>
+
+<form method="post" id="form-simulador" class="layout-sim"
+      data-max-ton="{{ max_ton|floatformat:'0' }}" data-url-calcular="{% url 'cotizaciones:calcular' %}">
+  {% csrf_token %}
+
+  <div class="tarjeta">
+    <h2>Datos de la operación</h2>
+    {% if form.non_field_errors %}<div class="alerta error">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="rejilla2">
+      {% include 'partes/campo.html' with campo=form.referencia %}
+      {% include 'partes/campo.html' with campo=form.solicitante %}
+    </div>
+
+    <div class="seccion-titulo">Ruta y embarcador</div>
+    {% include 'partes/campo.html' with campo=form.tarifa %}
+
+    <div class="seccion-titulo">Carga</div>
+    <div class="rejilla2">
+      {% include 'partes/campo.html' with campo=form.toneladas %}
+      {% include 'partes/campo.html' with campo=form.contenedores %}
+    </div>
+
+    <div class="peso" id="peso">
+      <div class="peso-fila">
+        <div>
+          <small>CONTENEDORES SUGERIDOS</small>
+          <div class="peso-grande"><span id="peso-sug">0</span> <span class="peso-nota">× {{ max_ton|floatformat:"0" }} t máx.</span></div>
+        </div>
+        <div class="peso-der"><small>Carga / capacidad</small>
+          <div><b id="peso-carga">0 t</b> / <span id="peso-cap">0 t</span></div></div>
+      </div>
+      <div class="barra"><div id="peso-barra"></div></div>
+      <small id="peso-nota">Ocupación: 0% · Restricción legal Decreto 75 (máx. {{ max_ton|floatformat:"0" }} t por contenedor)</small>
+    </div>
+
+    <div class="seccion-titulo">Valores y tránsito</div>
+    <div class="rejilla2">
+      {% include 'partes/campo.html' with campo=form.fob_usd %}
+      {% include 'partes/campo.html' with campo=form.dias_transito %}
+    </div>
+    {% include 'partes/campo.html' with campo=form.tipo_cambio %}
+    {% include 'partes/campo_tlc.html' with campo=form.acogido_tlc %}
+
+    <noscript><button class="btn btn-primario">Calcular y guardar cotización</button></noscript>
+  </div>
+
+  <div class="tarjeta" id="panel-resultado">
+    <h2>Resultado de la cotización <span class="pastilla" id="etiqueta-cot">Vista previa</span></h2>
+    <div id="resultado">
+      <div class="vacio">Selecciona una tarifa e ingresa las toneladas para ver la cotización.</div>
+    </div>
+    <p class="no-print"><button type="submit" class="btn btn-primario" id="btn-guardar" disabled>Guardar y exportar / imprimir cotización</button></p>
+  </div>
+</form>
+
+<script src="{% static 'js/simulador.js' %}"></script>
+{% endblock %}
