@@ -37,9 +37,14 @@ class Tarifa(models.Model):
         CONTENEDOR = 'CONTENEDOR', 'Por contenedor'
         TONELADA = 'TONELADA', 'Por tonelada'
 
+    class TipoRuta(models.TextChoices):
+        DIRECTO = 'DIRECTO', 'Directo'
+        CON_ESCALA = 'CON_ESCALA', 'Con escala'
+
     embarcador = models.ForeignKey(Embarcador, on_delete=models.PROTECT, related_name='tarifas')
     puerto_origen = models.ForeignKey(Puerto, on_delete=models.PROTECT, related_name='tarifas_origen')
     puerto_destino = models.ForeignKey(Puerto, on_delete=models.PROTECT, related_name='tarifas_destino')
+    tipo_ruta = models.CharField('tipo de ruta', max_length=15, choices=TipoRuta.choices, default=TipoRuta.DIRECTO)
     tipo_cobro = models.CharField('tipo de cobro', max_length=10, choices=TipoCobro.choices)
     monto_usd = models.DecimalField('tarifa (USD)', max_digits=10, decimal_places=2,
                                     validators=[MinValueValidator(Decimal('0.01'))])
@@ -53,7 +58,7 @@ class Tarifa(models.Model):
         verbose_name_plural = 'tarifas'
         ordering = ['puerto_origen__nombre', 'puerto_destino__nombre', 'monto_usd']
         constraints = [
-            models.UniqueConstraint(fields=['embarcador', 'puerto_origen', 'puerto_destino', 'tipo_cobro'],
+            models.UniqueConstraint(fields=['embarcador', 'puerto_origen', 'puerto_destino', 'tipo_ruta', 'tipo_cobro'],
                                     name='uq_tarifa_embarcador_ruta_cobro'),
             models.CheckConstraint(condition=~models.Q(puerto_origen=models.F('puerto_destino')),
                                    name='ck_tarifa_origen_distinto_destino'),
@@ -73,4 +78,4 @@ class Tarifa(models.Model):
 
     def __str__(self):
         unidad = 'cont.' if self.tipo_cobro == self.TipoCobro.CONTENEDOR else 'ton'
-        return f'{self.ruta} · {self.embarcador.nombre} · US$ {self.monto_texto}/{unidad} · {self.dias_transito} días'
+        return f'{self.ruta} ({self.get_tipo_ruta_display()}) · {self.embarcador.nombre} · US$ {self.monto_texto}/{unidad} · {self.dias_transito} días'

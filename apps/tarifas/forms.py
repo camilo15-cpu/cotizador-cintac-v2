@@ -16,6 +16,7 @@ class TarifaForm(forms.Form):
     embarcador = forms.CharField(label='Embarcador', max_length=80)
     puerto_origen = forms.CharField(label='Puerto de origen', max_length=80)
     puerto_destino = forms.CharField(label='Puerto de destino', max_length=80)
+    tipo_ruta = forms.ChoiceField(label='Tipo de ruta', choices=Tarifa.TipoRuta.choices, initial=Tarifa.TipoRuta.DIRECTO)
     tipo_cobro = forms.ChoiceField(label='Tipo de cobro', choices=Tarifa.TipoCobro.choices)
     monto_usd = forms.DecimalField(label='Tarifa (USD)', min_value=Decimal('0.01'), max_digits=10, decimal_places=2)
     dias_transito = forms.IntegerField(label='Días de tránsito', min_value=1, max_value=365)
@@ -25,8 +26,9 @@ class TarifaForm(forms.Form):
         if instance is not None and 'initial' not in kwargs:
             kwargs['initial'] = {
                 'embarcador': instance.embarcador.nombre, 'puerto_origen': instance.puerto_origen.nombre,
-                'puerto_destino': instance.puerto_destino.nombre, 'tipo_cobro': instance.tipo_cobro,
-                'monto_usd': instance.monto_usd, 'dias_transito': instance.dias_transito,
+                'puerto_destino': instance.puerto_destino.nombre, 'tipo_ruta': instance.tipo_ruta,
+                'tipo_cobro': instance.tipo_cobro, 'monto_usd': instance.monto_usd,
+                'dias_transito': instance.dias_transito,
             }
         super().__init__(*args, **kwargs)
 
@@ -44,14 +46,15 @@ class TarifaForm(forms.Form):
         origen, destino = datos.get('puerto_origen'), datos.get('puerto_destino')
         if origen and destino and origen.casefold() == destino.casefold():
             self.add_error('puerto_destino', 'El puerto de destino debe ser distinto al de origen.')
-        if all(datos.get(c) for c in ('embarcador', 'puerto_origen', 'puerto_destino', 'tipo_cobro')):
+        if all(datos.get(c) for c in ('embarcador', 'puerto_origen', 'puerto_destino', 'tipo_ruta', 'tipo_cobro')):
             repetidas = Tarifa.objects.filter(
                 embarcador__nombre__iexact=datos['embarcador'], puerto_origen__nombre__iexact=origen,
-                puerto_destino__nombre__iexact=destino, tipo_cobro=datos['tipo_cobro'])
+                puerto_destino__nombre__iexact=destino, tipo_ruta=datos['tipo_ruta'],
+                tipo_cobro=datos['tipo_cobro'])
             if self.instance is not None:
                 repetidas = repetidas.exclude(pk=self.instance.pk)
             if repetidas.exists():
-                raise ValidationError('Ya existe una tarifa de ese embarcador para esa ruta y tipo de cobro.')
+                raise ValidationError('Ya existe una tarifa de ese embarcador para esa ruta, tipo de ruta y cobro.')
         return datos
 
     @staticmethod
@@ -65,6 +68,7 @@ class TarifaForm(forms.Form):
         tarifa.embarcador = self._obtener_o_crear(Embarcador, d['embarcador'])
         tarifa.puerto_origen = self._obtener_o_crear(Puerto, d['puerto_origen'])
         tarifa.puerto_destino = self._obtener_o_crear(Puerto, d['puerto_destino'])
+        tarifa.tipo_ruta = d['tipo_ruta']
         tarifa.tipo_cobro = d['tipo_cobro']
         tarifa.monto_usd = d['monto_usd']
         tarifa.dias_transito = d['dias_transito']
