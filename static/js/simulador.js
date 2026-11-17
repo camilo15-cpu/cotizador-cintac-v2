@@ -11,7 +11,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var c = {
     tarifa: $('id_tarifa'), toneladas: $('id_toneladas'), contenedores: $('id_contenedores'),
-    fob: $('id_fob_usd'), dias: $('id_dias_transito'), tc: $('id_tipo_cambio'), tlc: $('id_acogido_tlc')
+    fob: $('id_fob_usd'), carga: $('id_valor_carga_usd'),
+    dias: $('id_dias_transito'), tc: $('id_tipo_cambio'), tlc: $('id_acogido_tlc')
   };
   var panel = $('resultado'), btnGuardar = $('btn-guardar'), pedido = 0, temporizador = null;
 
@@ -20,7 +21,7 @@
   var nf2 = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   var usd = function (v) { return 'US$ ' + nf2.format(parseFloat(v)); };
   var clp = function (v) { return '$ ' + nf0.format(v); };
-  var num = function (el) { var v = parseFloat(el.value); return isNaN(v) ? 0 : v; };
+  var num = function (el) { if (!el) { return 0; } var v = parseFloat(el.value); return isNaN(v) ? 0 : v; };
 
   /* ---- Indicador de contenedores (se actualiza al escribir) ---- */
   function renderPeso() {
@@ -113,6 +114,9 @@
     tabla.innerHTML = '<thead><tr><th>Concepto</th><th class="num">USD</th><th class="num">CLP</th></tr></thead>';
     var cuerpo = document.createElement('tbody');
     cuerpo.appendChild(fila('Valor FOB', '', r.fob));
+    if (r.valor_carga && parseFloat(r.valor_carga.usd) > 0) {
+      cuerpo.appendChild(fila('Valor de la carga', 'opcional', r.valor_carga));
+    }
     cuerpo.appendChild(fila('Flete base', usd(r.monto_tarifa) + ' × ' + cantidad, r.flete_base));
     cuerpo.appendChild(fila('Contingencia logística (+' + r.porcentaje_contingencia + '%)', r.dias + ' días de tránsito', r.recargo));
     cuerpo.appendChild(fila('Flete total con margen', '', r.flete_total, 'subtotal'));
@@ -129,7 +133,7 @@
 
   /* ---- Consulta al servidor (con "debounce" para no saturarlo) ---- */
   function calcular() {
-    if (!c.tarifa.value || !(num(c.toneladas) > 0) || c.fob.value === '' || !(num(c.tc) > 0)) {
+    if (!c.tarifa.value || !(num(c.toneladas) > 0) || !(num(c.tc) > 0)) {
       mostrarVacio();
       return;
     }
@@ -137,7 +141,8 @@
     params.set('tarifa', c.tarifa.value);
     params.set('toneladas', c.toneladas.value);
     params.set('contenedores', c.contenedores.value);
-    params.set('fob_usd', c.fob.value);
+    params.set('fob_usd', c.fob ? c.fob.value : '');
+    params.set('valor_carga_usd', c.carga ? c.carga.value : '');
     params.set('dias_transito', c.dias.value);
     params.set('tipo_cambio', c.tc.value);
     if (c.tlc.checked) { params.set('acogido_tlc', 'on'); }
@@ -167,12 +172,14 @@
   });
   c.toneladas.addEventListener('input', function () {
     var ton = num(c.toneladas);
-    c.contenedores.value = ton > 0 ? Math.ceil(ton / MAX_TON - 1e-9) : '';      // mínimo sugerido
+    c.contenedores.value = ton > 0 ? Math.ceil(ton / MAX_TON - 1e-9) : '';       // mínimo sugerido
     renderPeso();
     programar();
   });
   c.contenedores.addEventListener('input', function () { renderPeso(); programar(); });
-  [c.fob, c.dias, c.tc].forEach(function (el) { el.addEventListener('input', programar); });
+  [c.fob, c.carga, c.dias, c.tc].forEach(function (el) {
+    if (el) { el.addEventListener('input', programar); }
+  });
   c.tlc.addEventListener('change', programar);
 
   /* Estado inicial (también al volver a mostrar el formulario con datos) */

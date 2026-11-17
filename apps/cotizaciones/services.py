@@ -58,6 +58,7 @@ class ResultadoCotizacion:
     recargo: Decimal
     flete_total: Decimal
     seguro: Decimal
+    valor_carga: Decimal
     cif: Decimal
     porcentaje_arancel: Decimal
     arancel: Decimal
@@ -73,19 +74,27 @@ class ResultadoCotizacion:
         return (self.porcentaje_contingencia * 100).normalize()
 
 
-def calcular_cotizacion(*, monto_tarifa, tipo_cobro, toneladas, fob, dias_transito, acogido_tlc,
+def calcular_cotizacion(*, monto_tarifa, tipo_cobro, toneladas, fob=None, valor_carga=None, dias_transito, acogido_tlc,
                         tipo_cambio, contenedores=None) -> ResultadoCotizacion:
     """Calcula el costo de importación. Lanza ValueError si algún dato es inválido (validación en servidor)."""
-    monto_tarifa, toneladas, fob, tipo_cambio = (Decimal(monto_tarifa), Decimal(toneladas),
-                                                 Decimal(fob), Decimal(tipo_cambio))
+    monto_tarifa, toneladas, tipo_cambio = (Decimal(monto_tarifa), Decimal(toneladas), Decimal(tipo_cambio))
+    
+    # Manejo opcional del valor de la carga (prioriza valor_carga, luego fob, o 0 si no se ingresa)
+    if valor_carga is not None and valor_carga != '':
+        val_carga = Decimal(valor_carga)
+    elif fob is not None and fob != '':
+        val_carga = Decimal(fob)
+    else:
+        val_carga = Decimal('0.00')
+
     if tipo_cobro not in (COBRO_CONTENEDOR, COBRO_TONELADA):
         raise ValueError('Tipo de cobro inválido.')
     if monto_tarifa <= 0:
         raise ValueError('La tarifa debe ser mayor a cero.')
     if toneladas <= 0:
         raise ValueError('Las toneladas deben ser mayores a cero.')
-    if fob < 0:
-        raise ValueError('El valor FOB no puede ser negativo.')
+    if val_carga < 0:
+        raise ValueError('El valor de la carga no puede ser negativo.')
     if int(dias_transito) < 1:
         raise ValueError('Los días de tránsito deben ser al menos 1.')
     if tipo_cambio <= 0:
@@ -98,8 +107,8 @@ def calcular_cotizacion(*, monto_tarifa, tipo_cobro, toneladas, fob, dias_transi
     pct_contingencia = porcentaje_contingencia(int(dias_transito))
     recargo = _a_centavos(flete_base * pct_contingencia)
     flete_total = flete_base + recargo
-    seguro = Decimal('0.00')                                   # exento por póliza global CINTAC
-    cif = _a_centavos(fob) + flete_total + seguro
+    seguro = Decimal('0.00')                                     # exento por póliza global CINTAC
+    cif = _a_centavos(val_carga) + flete_total + seguro
     pct_arancel = Decimal('0') if acogido_tlc else ARANCEL_SIN_TLC
     arancel = _a_centavos(cif * pct_arancel)
     base_iva = cif + arancel
@@ -111,7 +120,7 @@ def calcular_cotizacion(*, monto_tarifa, tipo_cobro, toneladas, fob, dias_transi
         contenedores=n_contenedores,
         toneladas_por_contenedor=(toneladas / Decimal(n_contenedores)) if n_contenedores else Decimal('0'),
         flete_base=flete_base, porcentaje_contingencia=pct_contingencia, recargo=recargo,
-        flete_total=flete_total, seguro=seguro, cif=cif, porcentaje_arancel=pct_arancel, arancel=arancel,
+        flete_total=flete_total, seguro=seguro, valor_carga=_a_centavos(val_carga), cif=cif, porcentaje_arancel=pct_arancel, arancel=arancel,
         base_iva=base_iva, iva=iva, total_usd=total_usd, total_clp=total_clp,
         excede_peso=excede_decreto_75(toneladas, n_contenedores))
 
@@ -134,11 +143,11 @@ class OpcionComparada:
     es_mas_rapida: bool
 
 
-def comparar(opciones, *, toneladas, fob, acogido_tlc, tipo_cambio):
+def comparar(opciones, *, toneladas, fob=None, valor_carga=None, acogido_tlc, tipo_cambio):
     """Cotiza la misma carga con cada opción y las ordena de la más barata a la más cara."""
     opciones = list(opciones)
     calculadas = [
-        (op, calcular_cotizacion(monto_tarifa=op.monto, tipo_cobro=op.tipo_cobro, toneladas=toneladas, fob=fob,
+        (op, calcular_cotizacion(monto_tarifa=op.monto, tipo_cobro=op.tipo_cobro, toneladas=toneladas, fob=fob, valor_carga=valor_carga,
                                  dias_transito=op.dias_transito, acogido_tlc=acogido_tlc, tipo_cambio=tipo_cambio))
         for op in opciones
     ]

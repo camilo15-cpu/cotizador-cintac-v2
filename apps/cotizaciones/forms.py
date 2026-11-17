@@ -23,15 +23,19 @@ class CotizacionForm(forms.Form):
     tarifa = forms.ModelChoiceField(queryset=Tarifa.objects.none(), label='Tarifa (ruta · embarcador)',
                                     empty_label='Selecciona una tarifa', widget=TarifaSelect)
     referencia = forms.CharField(label='Referencia / N° importación', max_length=60, required=False,
-                                 widget=forms.TextInput(attrs={'placeholder': 'Ej: IMP-2026-118'}))
+                                   widget=forms.TextInput(attrs={'placeholder': 'Ej: IMP-2026-118'}))
     solicitante = forms.CharField(label='Solicitante', max_length=120)
     toneladas = forms.DecimalField(label='Toneladas', min_value=Decimal('0.01'), max_digits=12, decimal_places=2)
     contenedores = forms.IntegerField(label='Contenedores', min_value=1, required=False)
-    fob_usd = forms.DecimalField(label='Valor FOB (USD)', min_value=Decimal('0'), max_digits=14, decimal_places=2)
+    
+    # MODIFICADO: Valor FOB opcional o Valor de la carga opcional
+    fob_usd = forms.DecimalField(label='Valor FOB (USD)', min_value=Decimal('0'), max_digits=14, decimal_places=2, required=False, initial=Decimal('0.00'))
+    valor_carga_usd = forms.DecimalField(label='Valor de la Carga (USD)', min_value=Decimal('0'), max_digits=16, decimal_places=2, required=False, initial=Decimal('0.00'))
+
     dias_transito = forms.IntegerField(label='Días de tránsito', min_value=1, max_value=365, required=False)
     acogido_tlc = forms.BooleanField(label='Acogido a TLC (arancel 0 %)', required=False)
     tipo_cambio = forms.DecimalField(label='Tipo de cambio (CLP por USD)', min_value=Decimal('0.01'),
-                                     max_digits=10, decimal_places=2)
+                                       max_digits=10, decimal_places=2)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,9 +65,10 @@ class CotizacionForm(forms.Form):
 class ComparadorForm(forms.Form):
     ruta = forms.ChoiceField(label='Ruta')
     toneladas = forms.DecimalField(label='Toneladas', min_value=Decimal('0.01'), max_digits=12, decimal_places=2)
-    fob_usd = forms.DecimalField(label='Valor FOB (USD)', min_value=Decimal('0'), max_digits=14, decimal_places=2)
+    fob_usd = forms.DecimalField(label='Valor FOB (USD)', min_value=Decimal('0'), max_digits=14, decimal_places=2, required=False, initial=Decimal('0.00'))
+    valor_carga_usd = forms.DecimalField(label='Valor de la Carga (USD)', min_value=Decimal('0'), max_digits=16, decimal_places=2, required=False, initial=Decimal('0.00'))
     tipo_cambio = forms.DecimalField(label='Tipo de cambio (CLP por USD)', min_value=Decimal('0.01'),
-                                     max_digits=10, decimal_places=2)
+                                       max_digits=10, decimal_places=2)
     acogido_tlc = forms.BooleanField(label='Acogido a TLC (arancel 0 %)', required=False)
 
     def __init__(self, *args, **kwargs):

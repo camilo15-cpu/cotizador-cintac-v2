@@ -28,6 +28,10 @@ class Cotizacion(models.Model):
     toneladas = models.DecimalField(max_digits=12, decimal_places=2)
     contenedores = models.PositiveIntegerField()
     fob_usd = models.DecimalField('FOB (USD)', max_digits=14, decimal_places=2)
+    
+    # NUEVO: Valor de la carga opcional solicitado por el Product Owner
+    valor_carga_usd = models.DecimalField('Valor de la Carga (USD)', max_digits=16, decimal_places=2, null=True, blank=True, default=Decimal('0.00'))
+
     acogido_tlc = models.BooleanField('acogido a TLC', default=False)
     tipo_cambio = models.DecimalField('tipo de cambio', max_digits=10, decimal_places=2)
 

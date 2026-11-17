@@ -45,9 +45,12 @@
     <div class="seccion-titulo">Valores y tránsito</div>
     <div class="rejilla2">
       {% include 'partes/campo.html' with campo=form.fob_usd %}
-      {% include 'partes/campo.html' with campo=form.dias_transito %}
+      {% include 'partes/campo.html' with campo=form.valor_carga_usd %}
     </div>
-    {% include 'partes/campo.html' with campo=form.tipo_cambio %}
+    <div class="rejilla2">
+      {% include 'partes/campo.html' with campo=form.dias_transito %}
+      {% include 'partes/campo.html' with campo=form.tipo_cambio %}
+    </div>
     {% include 'partes/campo_tlc.html' with campo=form.acogido_tlc %}
 
     <noscript><button class="btn btn-primario">Calcular y guardar cotización</button></noscript>

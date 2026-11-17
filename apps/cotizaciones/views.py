@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
@@ -33,19 +35,25 @@ class SimuladorView(AdminOAnalistaMixin, FormView):
     def form_valid(self, form):
         d = form.cleaned_data
         tarifa = d['tarifa']
+        fob_val = d.get('fob_usd') or Decimal('0.00')
+        carga_val = d.get('valor_carga_usd') or Decimal('0.00')
+
         resultado = calcular_cotizacion(
             monto_tarifa=tarifa.monto_usd, tipo_cobro=tarifa.tipo_cobro, toneladas=d['toneladas'],
-            contenedores=d['contenedores'], fob=d['fob_usd'], dias_transito=d['dias_transito'],
-            acogido_tlc=d['acogido_tlc'], tipo_cambio=d['tipo_cambio'])
+            contenedores=d['contenedores'], fob=fob_val, valor_carga=carga_val,
+            dias_transito=d['dias_transito'], acogido_tlc=d['acogido_tlc'], tipo_cambio=d['tipo_cambio'])
+
         cotizacion = Cotizacion.objects.create(
             usuario=self.request.user, tarifa=tarifa, referencia=d['referencia'], solicitante=d['solicitante'],
             embarcador=tarifa.embarcador.nombre, ruta=tarifa.ruta, tipo_cobro=tarifa.tipo_cobro,
             tarifa_usd=tarifa.monto_usd, dias_transito=d['dias_transito'], toneladas=d['toneladas'],
-            contenedores=resultado.contenedores, fob_usd=d['fob_usd'], acogido_tlc=d['acogido_tlc'],
-            tipo_cambio=d['tipo_cambio'], porcentaje_contingencia=resultado.porcentaje_contingencia,
+            contenedores=resultado.contenedores, fob_usd=fob_val, valor_carga_usd=carga_val,
+            acogido_tlc=d['acogido_tlc'], tipo_cambio=d['tipo_cambio'],
+            porcentaje_contingencia=resultado.porcentaje_contingencia,
             flete_base_usd=resultado.flete_base, recargo_usd=resultado.recargo,
             flete_total_usd=resultado.flete_total, cif_usd=resultado.cif, arancel_usd=resultado.arancel,
             iva_usd=resultado.iva, total_usd=resultado.total_usd, total_clp=resultado.total_clp)
+
         registrar(AuditLog.Accion.CREAR_COTIZACION, request=self.request, objeto=cotizacion,
                   detalle={'numero': cotizacion.numero, 'ruta': cotizacion.ruta,
                            'total_usd': resultado.total_usd, 'total_clp': resultado.total_clp})
@@ -74,10 +82,13 @@ class CalcularCotizacionView(AdminOAnalistaMixin, View):
 
         d = form.cleaned_data
         tarifa, cambio = d['tarifa'], d['tipo_cambio']
+        fob_val = d.get('fob_usd') or Decimal('0.00')
+        carga_val = d.get('valor_carga_usd') or Decimal('0.00')
+
         r = calcular_cotizacion(
             monto_tarifa=tarifa.monto_usd, tipo_cobro=tarifa.tipo_cobro, toneladas=d['toneladas'],
-            contenedores=d['contenedores'], fob=d['fob_usd'], dias_transito=d['dias_transito'],
-            acogido_tlc=d['acogido_tlc'], tipo_cambio=cambio)
+            contenedores=d['contenedores'], fob=fob_val, valor_carga=carga_val,
+            dias_transito=d['dias_transito'], acogido_tlc=d['acogido_tlc'], tipo_cambio=cambio)
 
         def linea(monto):
             return {'usd': str(monto), 'clp': a_clp(monto, cambio)}
@@ -92,7 +103,8 @@ class CalcularCotizacionView(AdminOAnalistaMixin, View):
             'toneladas': str(d['toneladas']),
             'porcentaje_contingencia': str(r.porcentaje_contingencia_visible),
             'porcentaje_arancel': str((r.porcentaje_arancel * 100).normalize()),
-            'fob': linea(d['fob_usd']), 'flete_base': linea(r.flete_base), 'recargo': linea(r.recargo),
+            'fob': linea(fob_val), 'valor_carga': linea(carga_val),
+            'flete_base': linea(r.flete_base), 'recargo': linea(r.recargo),
             'flete_total': linea(r.flete_total), 'seguro': linea(r.seguro), 'cif': linea(r.cif),
             'arancel': linea(r.arancel), 'iva': linea(r.iva), 'total': linea(r.total_usd),
             'total_clp': r.total_clp,
@@ -134,7 +146,9 @@ class ComparadorView(AdminOAnalistaMixin, TemplateView):
             opciones = [OpcionTarifa(id=t.pk, embarcador=t.embarcador.nombre, tipo_cobro=t.tipo_cobro,
                                      monto=t.monto_usd, dias_transito=t.dias_transito) for t in tarifas]
             d = form.cleaned_data
-            comparadas = comparar(opciones, toneladas=d['toneladas'], fob=d['fob_usd'],
+            fob_val = d.get('fob_usd') or Decimal('0.00')
+            carga_val = d.get('valor_carga_usd') or Decimal('0.00')
+            comparadas = comparar(opciones, toneladas=d['toneladas'], fob=fob_val, valor_carga=carga_val,
                                   acogido_tlc=d['acogido_tlc'], tipo_cambio=d['tipo_cambio'])
             contexto['comparadas'] = comparadas
             contexto['ahorro'] = ahorro_maximo(comparadas)
